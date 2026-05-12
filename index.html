@@ -39,8 +39,6 @@
             transform: scale(1.1) skewX(-5deg);
         }
 
-        .btn:active { background: #fff; }
-
         input {
             background: transparent; border: 2px solid #ff0000;
             color: #ff0000; padding: 15px; font-size: 2.5rem;
@@ -74,6 +72,9 @@
 </head>
 <body>
 
+    <!-- Audio für Zwischenwelt -->
+    <audio id="background-audio" src="erika.mp3" loop></audio>
+
     <div id="pin-overlay">
         <h1>STRENG GEHEIM</h1>
         <p>GIB DAS ZUGANGSWORT EIN</p>
@@ -86,12 +87,20 @@
         <button class="btn" onclick="playErika()">ERIKA</button>
     </section>
 
+    <!-- NEUE ZWISCHENWELT PAGE -->
+    <section id="sub-menu">
+        <h1>WOHIN JETZT?</h1>
+        <button class="btn" onclick="playErika()">88</button>
+        <button class="btn" onclick="playTeufel()">666</button>
+        <button class="btn" onclick="playErika()">ICH WILL NICHT MEHR</button>
+    </section>
+
     <section id="quiz-container"></section>
 
     <div id="video-container">
-        <video id="erika-video" src="erika.mp4" loop></video>
+        <video id="main-video" loop></video>
         <div id="maze-msg"></div>
-        <button class="btn" id="escape-btn" style="position: absolute; top: 10px; right: 10px; opacity: 0.1;" onclick="tryEscape()">X</button>
+        <button class="btn" id="escape-btn" style="position: absolute; top: 10px; right: 10px; opacity: 0.2; padding: 10px;" onclick="tryEscape()">X</button>
     </div>
 
     <script>
@@ -130,6 +139,8 @@
 
         let currentIdx = 0;
         let escapeClicks = 0;
+        let targetClicks = 15; // Standard Erika
+        let mode = "erika";
 
         function checkPin() {
             if (document.getElementById('pin-input').value === "1933") {
@@ -148,16 +159,8 @@
             const data = questions[currentIdx];
             container.style.display = 'flex';
             container.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('${data.img}')`;
-
             let answers = [...data.a].sort(() => Math.random() - 0.5);
-
-            container.innerHTML = `
-                <h2 style="font-size: 1rem; color: #4a0000;">STUFE ${currentIdx + 1} / 30</h2>
-                <h1 style="font-size: 2.2rem;">${data.q}</h1>
-                <div>
-                    ${answers.map(ans => `<button class="btn" onclick="check('${ans}', '${data.a[0]}')">${ans}</button>`).join('')}
-                </div>
-            `;
+            container.innerHTML = `<h2 style="font-size: 1rem; color: #4a0000;">STUFE ${currentIdx + 1} / 30</h2><h1 style="font-size: 2.2rem;">${data.q}</h1><div>${answers.map(ans => `<button class="btn" onclick="check('${ans}', '${data.a[0]}')">${ans}</button>`).join('')}</div>`;
         }
 
         function check(sel, cor) {
@@ -167,24 +170,42 @@
                 setTimeout(() => {
                     document.body.classList.remove('jumpscare-flash');
                     if(currentIdx < questions.length) showQuestion(); 
-                    else {
-                        document.body.innerHTML = "<h1 style='text-align:center; margin-top:20%; color: gold;'>DU HAST ÜBERLEBT.</h1>";
-                    }
+                    else document.body.innerHTML = "<h1 style='text-align:center; margin-top:20%; color: gold;'>DU HAST ÜBERLEBT.</h1>";
                 }, 200);
             } else {
                 document.body.classList.add('jumpscare-flash');
-                setTimeout(() => { alert("VERSAGT! DER STAAT VERGISST NICHT."); location.reload(); }, 300);
+                setTimeout(() => { alert("VERSAGT!"); location.reload(); }, 300);
             }
         }
 
+        // Erika Video starten
         function playErika() {
+            mode = "erika";
+            targetClicks = 15;
+            document.getElementById('background-audio').pause();
             const container = document.getElementById('video-container');
-            const vid = document.getElementById('erika-video');
+            const vid = document.getElementById('main-video');
+            vid.src = "erika.mp4";
             container.style.display = 'block';
             vid.volume = 1.0;
             vid.play();
             if (container.requestFullscreen) container.requestFullscreen();
             document.getElementById('maze-msg').innerText = "DU KANNST NICHT GEHEN.";
+        }
+
+        // Teufel Video starten (666)
+        function playTeufel() {
+            mode = "teufel";
+            targetClicks = 45; // Dreifach so lange
+            document.getElementById('background-audio').pause();
+            const container = document.getElementById('video-container');
+            const vid = document.getElementById('main-video');
+            vid.src = "teufel.mp4";
+            container.style.display = 'block';
+            vid.volume = 1.0;
+            vid.play();
+            if (container.requestFullscreen) container.requestFullscreen();
+            document.getElementById('maze-msg').innerText = "DIE HÖLLE IST EWIG.";
         }
 
         function tryEscape() {
@@ -193,16 +214,25 @@
             const btn = document.getElementById('escape-btn');
             
             // Button springt weg
-            btn.style.top = Math.random() * 80 + "%";
-            btn.style.right = Math.random() * 80 + "%";
+            btn.style.top = Math.random() * 85 + "%";
+            btn.style.left = Math.random() * 85 + "%";
 
-            if(escapeClicks < 5) msg.innerText = "VERSUCH ES WEITER...";
-            else if(escapeClicks < 10) msg.innerText = "ES GIBT KEIN ENTRINNEN!";
-            else if(escapeClicks < 15) msg.innerText = "DEINE MÜHE IST UMSONST!";
-            else {
+            msg.innerText = "TREFFER: " + escapeClicks + " / " + targetClicks;
+
+            if(escapeClicks >= targetClicks) {
                 document.getElementById('video-container').style.display = 'none';
-                document.getElementById('erika-video').pause();
+                document.getElementById('main-video').pause();
                 if (document.exitFullscreen) document.exitFullscreen();
+                
+                if(mode === "erika") {
+                    // Zur Zwischenwelt wechseln
+                    document.getElementById('menu').style.display = 'none';
+                    document.getElementById('sub-menu').style.display = 'flex';
+                    document.getElementById('background-audio').play();
+                } else {
+                    // Von Teufel zurück zur Homepage
+                    location.reload();
+                }
                 escapeClicks = 0;
             }
         }
