@@ -1,1 +1,211 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>DEUTSCHLAND - DIE DUNKELE PRÜFUNG</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #050000; color: #ff0000;
+            overflow: hidden;
+        }
 
+        section {
+            min-height: 100vh; display: none; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+            padding: 20px; background-size: cover; background-position: center;
+        }
+
+        #pin-overlay {
+            display: flex; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: black;
+            z-index: 10000; justify-content: center; align-items: center;
+            flex-direction: column;
+        }
+
+        h1 { font-size: 3rem; text-shadow: 0 0 20px #ff0000; margin-bottom: 30px; }
+
+        .btn {
+            padding: 25px 50px; background: #ff0000; color: #000;
+            border: 3px solid #4a0000; font-weight: bold; font-size: 1.4rem;
+            margin: 15px; cursor: pointer; text-transform: uppercase;
+            box-shadow: 0 0 15px #ff0000; transition: 0.05s;
+            position: relative;
+        }
+
+        .btn:hover {
+            filter: invert(1);
+            transform: scale(1.1) skewX(-5deg);
+        }
+
+        .btn:active { background: #fff; }
+
+        input {
+            background: transparent; border: 2px solid #ff0000;
+            color: #ff0000; padding: 15px; font-size: 2.5rem;
+            text-align: center; width: 300px; outline: none;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        #video-container {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh; background: black; z-index: 9999;
+        }
+
+        video { width: 100%; height: 100%; object-fit: cover; }
+
+        .jumpscare-flash {
+            animation: flash 0.15s infinite;
+        }
+
+        @keyframes flash {
+            0% { background: #ff0000; }
+            50% { background: #ffffff; }
+            100% { background: #000000; }
+        }
+
+        #maze-msg {
+            position: absolute; bottom: 20%; color: white;
+            font-size: 2rem; width: 100%; text-align: center;
+            pointer-events: none; text-shadow: 2px 2px 10px red;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="pin-overlay">
+        <h1>STRENG GEHEIM</h1>
+        <p>GIB DAS ZUGANGSWORT EIN</p>
+        <input type="password" id="pin-input" maxlength="4" oninput="checkPin()">
+    </div>
+
+    <section id="menu">
+        <h1>DEUTSCHLAND EXAMEN</h1>
+        <button class="btn" onclick="startQuiz()">QUIZ STARTEN</button>
+        <button class="btn" onclick="playErika()">ERIKA</button>
+    </section>
+
+    <section id="quiz-container"></section>
+
+    <div id="video-container">
+        <video id="erika-video" src="erika.mp4" loop></video>
+        <div id="maze-msg"></div>
+        <button class="btn" id="escape-btn" style="position: absolute; top: 10px; right: 10px; opacity: 0.1;" onclick="tryEscape()">X</button>
+    </div>
+
+    <script>
+        const questions = [
+            { q: "Wer war der erste Reichskanzler des Deutschen Reiches 1871?", a: ["Otto von Bismarck", "Leo von Caprivi", "Friedrich III."], img: "https://upload.wikimedia.org/wikipedia/commons/e/e6/Otto_von_Bismarck.JPG" },
+            { q: "Wie hieß die Verfassung der ersten deutschen Republik?", a: ["Weimarer Verfassung", "Paulskirchenverfassung", "Bonner Grundgesetz"], img: "https://upload.wikimedia.org/wikipedia/commons/b/b3/WRV_Seite_1.JPG" },
+            { q: "Welcher Fluss ist mit 865km der längste, der vollständig in Deutschland fließt?", a: ["Weser", "Main", "Elbe"], img: "https://upload.wikimedia.org/wikipedia/commons/d/d0/Weser_bei_Minden.jpg" },
+            { q: "In welcher Stadt wurde 1848 die erste deutsche Nationalversammlung eröffnet?", a: ["Frankfurt a.M.", "Berlin", "Leipzig"], img: "https://upload.wikimedia.org/wikipedia/commons/3/3b/Paulskirche_1848.jpg" },
+            { q: "Wie viele Bundesländer hat Deutschland?", a: ["16", "15", "17"], img: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Deutschland_Bundeslaender_2011.png" },
+            { q: "Wer schrieb die Melodie der deutschen Nationalhymne?", a: ["Joseph Haydn", "Ludwig van Beethoven", "Richard Wagner"], img: "https://upload.wikimedia.org/wikipedia/commons/0/05/Joseph_Haydn.jpg" },
+            { q: "Welches Ereignis fand am 9. November 1989 statt?", a: ["Mauerfall", "Wiedervereinigung", "Ende des WWII"], img: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Berlin_Wall_Potzdamer_Platz_November_1989_2.jpg" },
+            { q: "Wie heißt der höchste Berg Deutschlands?", a: ["Zugspitze", "Watzmann", "Feldberg"], img: "https://upload.wikimedia.org/wikipedia/commons/1/1a/Zugspitze_vom_Eibsee_aus.JPG" },
+            { q: "Welcher Philosoph schrieb 'Also sprach Zarathustra'?", a: ["Friedrich Nietzsche", "Immanuel Kant", "Georg Hegel"], img: "https://upload.wikimedia.org/wikipedia/commons/1/1b/Nietzsche1882.jpg" },
+            { q: "Wann wurde das Grundgesetz unterzeichnet?", a: ["23. Mai 1949", "17. Juni 1953", "3. Oktober 1990"], img: "https://upload.wikimedia.org/wikipedia/commons/e/e0/Grundgesetz_Original.jpg" },
+            { q: "Wer war der erste Bundespräsident?", a: ["Theodor Heuss", "Konrad Adenauer", "Ludwig Erhard"], img: "https://upload.wikimedia.org/wikipedia/commons/5/52/Theodor_Heuss_1953.jpg" },
+            { q: "In welchem Jahr wurde die D-Mark eingeführt?", a: ["1948", "1950", "1945"], img: "https://upload.wikimedia.org/wikipedia/commons/0/0a/5_DM_Serie1.jpg" },
+            { q: "Wie hieß das Bündnis der norddeutschen Kaufleute im Mittelalter?", a: ["Hanse", "Gilde", "Zunft"], img: "https://upload.wikimedia.org/wikipedia/commons/3/3b/Hanseschiffe.jpg" },
+            { q: "Welche Stadt ist die flächengrößte Deutschlands?", a: ["Berlin", "Hamburg", "München"], img: "https://upload.wikimedia.org/wikipedia/commons/0/0b/Berlin_Skyline_Fernsehturm.jpg" },
+            { q: "Wer entdeckte die Röntgenstrahlen?", a: ["Wilhelm Conrad Röntgen", "Max Planck", "Albert Einstein"], img: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Wilhelm_Conrad_R%C3%B6ntgen.jpg" },
+            { q: "Welche Dynastie stellte die meisten Kaiser des Heiligen Römischen Reiches?", a: ["Habsburger", "Hohenzollern", "Staufer"], img: "https://upload.wikimedia.org/wikipedia/commons/0/0a/Imperial_Crown_of_the_Holy_Roman_Empire.jpg" },
+            { q: "Wie nannte man die Gebiete der DDR nach 1990?", a: ["Neue Bundesländer", "Sowjetzone", "Ostgebiete"], img: "https://upload.wikimedia.org/wikipedia/commons/2/25/DDR_Map.svg" },
+            { q: "Wer erfand den Buchdruck mit beweglichen Lettern?", a: ["Johannes Gutenberg", "Martin Luther", "Albrecht Dürer"], img: "https://upload.wikimedia.org/wikipedia/commons/3/33/Gutenberg.jpg" },
+            { q: "Wofür steht die Abkürzung 'Stasi'?", a: ["Staatssicherheit", "Stadtsicherung", "Stabile Sicherheit"], img: "https://upload.wikimedia.org/wikipedia/commons/e/e0/MfS-Logo.svg" },
+            { q: "Welche deutsche Insel liegt am weitesten im Norden?", a: ["Sylt", "Rügen", "Föhr"], img: "https://upload.wikimedia.org/wikipedia/commons/5/52/Sylt_Luftaufnahme.jpg" },
+            { q: "Was war das 'Wunder von Bern'?", a: ["WM Titel 1954", "Mauerbau", "Wirtschaftswunder"], img: "https://upload.wikimedia.org/wikipedia/commons/c/ca/Fritz_Walter_1954.jpg" },
+            { q: "Wer war die erste Frau im Amt des Bundeskanzlers?", a: ["Angela Merkel", "Annalena Baerbock", "Ursula von der Leyen"], img: "https://upload.wikimedia.org/wikipedia/commons/3/3b/Angela_Merkel_2019.jpg" },
+            { q: "Welches Gesetz schuf 1834 einen einheitlichen deutschen Binnenmarkt?", a: ["Zollverein", "Handelsgesetz", "Reichsmarkt"], img: "https://upload.wikimedia.org/wikipedia/commons/c/c5/Zollverein_Karte.jpg" },
+            { q: "Wie hieß der Widerstandskreis um Hans und Sophie Scholl?", a: ["Weiße Rose", "Rote Kapelle", "Edelweißpiraten"], img: "https://upload.wikimedia.org/wikipedia/commons/d/da/Sophie_Scholl.jpg" },
+            { q: "In welcher Stadt steht der größte Dom Deutschlands?", a: ["Köln", "Ulm", "Speyer"], img: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Koelner_Dom.jpg" },
+            { q: "Wann begann der Dreißigjährige Krieg?", a: ["1618", "1648", "1517"], img: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Battle_of_White_Mountain.jpg" },
+            { q: "Wer komponierte 'Die Zauberflöte'?", a: ["W.A. Mozart", "J.S. Bach", "Johannes Brahms"], img: "https://upload.wikimedia.org/wikipedia/commons/1/1e/Wolfgang-amadeus-mozart_1.jpg" },
+            { q: "Wie heißt die kleinste Landeshauptstadt Deutschlands?", a: ["Schwerin", "Saarbrücken", "Bremen"], img: "https://upload.wikimedia.org/wikipedia/commons/e/e6/Schweriner_Schloss.jpg" },
+            { q: "Welche Farbe hat das Band der Bundesverdienstmedaille?", a: ["Rot", "Blau", "Gold"], img: "https://upload.wikimedia.org/wikipedia/commons/f/f6/Bundesverdienstkreuz_1.Klasse.JPG" },
+            { q: "Wer war der 'Alte Fritz'?", a: ["Friedrich II. (Preußen)", "Friedrich I. (Barbarossa)", "Friedrich Wilhelm I."], img: "https://upload.wikimedia.org/wikipedia/commons/9/90/Friedrich_Zweite_Alt.jpg" }
+        ];
+
+        let currentIdx = 0;
+        let escapeClicks = 0;
+
+        function checkPin() {
+            if (document.getElementById('pin-input').value === "1933") {
+                document.getElementById('pin-overlay').style.display = 'none';
+                document.getElementById('menu').style.display = 'flex';
+            }
+        }
+
+        function startQuiz() {
+            document.getElementById('menu').style.display = 'none';
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const container = document.getElementById('quiz-container');
+            const data = questions[currentIdx];
+            container.style.display = 'flex';
+            container.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('${data.img}')`;
+
+            let answers = [...data.a].sort(() => Math.random() - 0.5);
+
+            container.innerHTML = `
+                <h2 style="font-size: 1rem; color: #4a0000;">STUFE ${currentIdx + 1} / 30</h2>
+                <h1 style="font-size: 2.2rem;">${data.q}</h1>
+                <div>
+                    ${answers.map(ans => `<button class="btn" onclick="check('${ans}', '${data.a[0]}')">${ans}</button>`).join('')}
+                </div>
+            `;
+        }
+
+        function check(sel, cor) {
+            if (sel === cor) {
+                currentIdx++;
+                document.body.classList.add('jumpscare-flash');
+                setTimeout(() => {
+                    document.body.classList.remove('jumpscare-flash');
+                    if(currentIdx < questions.length) showQuestion(); 
+                    else {
+                        document.body.innerHTML = "<h1 style='text-align:center; margin-top:20%; color: gold;'>DU HAST ÜBERLEBT.</h1>";
+                    }
+                }, 200);
+            } else {
+                document.body.classList.add('jumpscare-flash');
+                setTimeout(() => { alert("VERSAGT! DER STAAT VERGISST NICHT."); location.reload(); }, 300);
+            }
+        }
+
+        function playErika() {
+            const container = document.getElementById('video-container');
+            const vid = document.getElementById('erika-video');
+            container.style.display = 'block';
+            vid.volume = 1.0;
+            vid.play();
+            if (container.requestFullscreen) container.requestFullscreen();
+            document.getElementById('maze-msg').innerText = "DU KANNST NICHT GEHEN.";
+        }
+
+        function tryEscape() {
+            escapeClicks++;
+            const msg = document.getElementById('maze-msg');
+            const btn = document.getElementById('escape-btn');
+            
+            // Button springt weg
+            btn.style.top = Math.random() * 80 + "%";
+            btn.style.right = Math.random() * 80 + "%";
+
+            if(escapeClicks < 5) msg.innerText = "VERSUCH ES WEITER...";
+            else if(escapeClicks < 10) msg.innerText = "ES GIBT KEIN ENTRINNEN!";
+            else if(escapeClicks < 15) msg.innerText = "DEINE MÜHE IST UMSONST!";
+            else {
+                document.getElementById('video-container').style.display = 'none';
+                document.getElementById('erika-video').pause();
+                if (document.exitFullscreen) document.exitFullscreen();
+                escapeClicks = 0;
+            }
+        }
+    </script>
+</body>
+</html>
