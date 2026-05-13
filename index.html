@@ -27,23 +27,18 @@
         h1 { font-size: 3rem; text-shadow: 0 0 20px #ff0000; margin-bottom: 30px; }
 
         .btn {
-            padding: 25px 50px; background: #ff0000; color: #000;
-            border: 3px solid #4a0000; font-weight: bold; font-size: 1.4rem;
-            margin: 15px; cursor: pointer; text-transform: uppercase;
+            padding: 20px 40px; background: #ff0000; color: #000;
+            border: 3px solid #4a0000; font-weight: bold; font-size: 1.2rem;
+            margin: 10px; cursor: pointer; text-transform: uppercase;
             box-shadow: 0 0 15px #ff0000; transition: 0.05s;
-            position: relative;
         }
 
-        .btn:hover {
-            filter: invert(1);
-            transform: scale(1.1) skewX(-5deg);
-        }
+        .btn:hover { filter: invert(1); transform: scale(1.05); }
 
-        input {
+        input[type="password"] {
             background: transparent; border: 2px solid #ff0000;
             color: #ff0000; padding: 15px; font-size: 2.5rem;
             text-align: center; width: 300px; outline: none;
-            box-shadow: 0 0 10px #ff0000;
         }
 
         #video-container {
@@ -53,31 +48,36 @@
 
         video { width: 100%; height: 100%; object-fit: cover; }
 
-        .jumpscare-flash {
-            animation: flash 0.15s infinite;
+        /* Other Game Styles */
+        #game-container {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: #111; z-index: 500;
+            flex-direction: column; align-items: center;
         }
 
-        @keyframes flash {
-            0% { background: #ff0000; }
-            50% { background: #ffffff; }
-            100% { background: #000000; }
+        #physics-canvas {
+            border: 5px solid #ff0000; background: #000;
+            cursor: crosshair; margin-top: 20px;
         }
 
-        #maze-msg {
-            position: absolute; bottom: 20%; color: white;
-            font-size: 2rem; width: 100%; text-align: center;
-            pointer-events: none; text-shadow: 2px 2px 10px red;
+        .controls {
+            background: rgba(255,0,0,0.2); padding: 15px;
+            border-radius: 10px; margin-top: 10px; color: white;
         }
+
+        .jumpscare-flash { animation: flash 0.15s infinite; }
+        @keyframes flash { 0% { background: #f00; } 50% { background: #fff; } 100% { background: #000; } }
+        
+        #maze-msg { position: absolute; bottom: 20%; color: white; font-size: 2rem; width: 100%; text-align: center; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <!-- Audio für Zwischenwelt -->
     <audio id="background-audio" src="erika.mp3" loop></audio>
+    <audio id="final-audio" src="text.mp3"></audio>
 
     <div id="pin-overlay">
         <h1>STRENG GEHEIM</h1>
-        <p>GIB DAS ZUGANGSWORT EIN</p>
         <input type="password" id="pin-input" maxlength="4" oninput="checkPin()">
     </div>
 
@@ -85,9 +85,9 @@
         <h1>DEUTSCHLAND EXAMEN</h1>
         <button class="btn" onclick="startQuiz()">QUIZ STARTEN</button>
         <button class="btn" onclick="playErika()">ERIKA</button>
+        <button class="btn" onclick="openOther()">OTHER</button>
     </section>
 
-    <!-- NEUE ZWISCHENWELT PAGE -->
     <section id="sub-menu">
         <h1>WOHIN JETZT?</h1>
         <button class="btn" onclick="playErika()">88</button>
@@ -95,12 +95,24 @@
         <button class="btn" onclick="playErika()">ICH WILL NICHT MEHR</button>
     </section>
 
+    <!-- Physik Spiel Sektion -->
+    <div id="game-container">
+        <h2 style="color:red">BALL SPAWNER</h2>
+        <canvas id="physics-canvas"></canvas>
+        <div class="controls">
+            Größe: <input type="range" id="ballSize" min="5" max="50" value="20">
+            Hüpfen: <input type="checkbox" id="gravityToggle" checked>
+            <button class="btn" style="padding:5px 10px; font-size: 0.8rem;" onclick="location.reload()">ZURÜCK</button>
+        </div>
+        <p>Klicke ins Feld um Bälle zu spawnen!</p>
+    </div>
+
     <section id="quiz-container"></section>
 
     <div id="video-container">
         <video id="main-video" loop></video>
         <div id="maze-msg"></div>
-        <button class="btn" id="escape-btn" style="position: absolute; top: 10px; right: 10px; opacity: 0.2; padding: 10px;" onclick="tryEscape()">X</button>
+        <button class="btn" id="escape-btn" style="position: absolute; top: 10px; right: 10px; opacity: 0.2;" onclick="tryEscape()">X</button>
     </div>
 
     <script>
@@ -139,7 +151,7 @@
 
         let currentIdx = 0;
         let escapeClicks = 0;
-        let targetClicks = 15; // Standard Erika
+        let targetClicks = 15;
         let mode = "erika";
 
         function checkPin() {
@@ -160,7 +172,7 @@
             container.style.display = 'flex';
             container.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('${data.img}')`;
             let answers = [...data.a].sort(() => Math.random() - 0.5);
-            container.innerHTML = `<h2 style="font-size: 1rem; color: #4a0000;">STUFE ${currentIdx + 1} / 30</h2><h1 style="font-size: 2.2rem;">${data.q}</h1><div>${answers.map(ans => `<button class="btn" onclick="check('${ans}', '${data.a[0]}')">${ans}</button>`).join('')}</div>`;
+            container.innerHTML = `<h2 style="color:#4a0000">STUFE ${currentIdx + 1} / 30</h2><h1>${data.q}</h1><div>${answers.map(ans => `<button class="btn" onclick="check('${ans}', '${data.a[0]}')">${ans}</button>`).join('')}</div>`;
         }
 
         function check(sel, cor) {
@@ -170,7 +182,10 @@
                 setTimeout(() => {
                     document.body.classList.remove('jumpscare-flash');
                     if(currentIdx < questions.length) showQuestion(); 
-                    else document.body.innerHTML = "<h1 style='text-align:center; margin-top:20%; color: gold;'>DU HAST ÜBERLEBT.</h1>";
+                    else {
+                        document.body.innerHTML = "<h1 style='text-align:center; margin-top:20%; color: gold;'>DU HAST ÜBERLEBT.</h1>";
+                        document.getElementById('final-audio').play();
+                    }
                 }, 200);
             } else {
                 document.body.classList.add('jumpscare-flash');
@@ -178,63 +193,101 @@
             }
         }
 
-        // Erika Video starten
         function playErika() {
-            mode = "erika";
-            targetClicks = 15;
+            mode = "erika"; targetClicks = 15;
             document.getElementById('background-audio').pause();
             const container = document.getElementById('video-container');
             const vid = document.getElementById('main-video');
             vid.src = "erika.mp4";
-            container.style.display = 'block';
-            vid.volume = 1.0;
-            vid.play();
+            container.style.display = 'block'; vid.play();
             if (container.requestFullscreen) container.requestFullscreen();
-            document.getElementById('maze-msg').innerText = "DU KANNST NICHT GEHEN.";
         }
 
-        // Teufel Video starten (666)
         function playTeufel() {
-            mode = "teufel";
-            targetClicks = 45; // Dreifach so lange
-            document.getElementById('background-audio').pause();
+            mode = "teufel"; targetClicks = 45;
             const container = document.getElementById('video-container');
             const vid = document.getElementById('main-video');
             vid.src = "teufel.mp4";
-            container.style.display = 'block';
-            vid.volume = 1.0;
-            vid.play();
-            if (container.requestFullscreen) container.requestFullscreen();
-            document.getElementById('maze-msg').innerText = "DIE HÖLLE IST EWIG.";
+            container.style.display = 'block'; vid.play();
         }
 
         function tryEscape() {
             escapeClicks++;
-            const msg = document.getElementById('maze-msg');
             const btn = document.getElementById('escape-btn');
-            
-            // Button springt weg
-            btn.style.top = Math.random() * 85 + "%";
-            btn.style.left = Math.random() * 85 + "%";
-
-            msg.innerText = "TREFFER: " + escapeClicks + " / " + targetClicks;
-
+            btn.style.top = Math.random() * 80 + "%";
+            btn.style.left = Math.random() * 80 + "%";
+            document.getElementById('maze-msg').innerText = "TREFFER: " + escapeClicks + " / " + targetClicks;
             if(escapeClicks >= targetClicks) {
                 document.getElementById('video-container').style.display = 'none';
                 document.getElementById('main-video').pause();
-                if (document.exitFullscreen) document.exitFullscreen();
-                
                 if(mode === "erika") {
-                    // Zur Zwischenwelt wechseln
                     document.getElementById('menu').style.display = 'none';
                     document.getElementById('sub-menu').style.display = 'flex';
                     document.getElementById('background-audio').play();
-                } else {
-                    // Von Teufel zurück zur Homepage
-                    location.reload();
-                }
-                escapeClicks = 0;
+                } else location.reload();
             }
+        }
+
+        // --- PHYSICS GAME LOGIC ---
+        const canvas = document.getElementById('physics-canvas');
+        const ctx = canvas.getContext('2d');
+        let balls = [];
+
+        function openOther() {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
+            canvas.width = 600; canvas.height = 400;
+            animate();
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const size = parseInt(document.getElementById('ballSize').value);
+            balls.push({
+                x, y, radius: size, 
+                vx: (Math.random() - 0.5) * 10, 
+                vy: (Math.random() - 0.5) * 10,
+                color: `hsl(${Math.random() * 360}, 70%, 50%)`
+            });
+        });
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const gravity = document.getElementById('gravityToggle').checked ? 0.25 : 0;
+
+            balls.forEach((b, i) => {
+                b.vy += gravity;
+                b.x += b.vx; b.y += b.vy;
+
+                // Wall bounce
+                if (b.x + b.radius > canvas.width || b.x - b.radius < 0) b.vx *= -0.8;
+                if (b.y + b.radius > canvas.height) {
+                    b.y = canvas.height - b.radius;
+                    b.vy *= -0.7;
+                }
+                if (b.y - b.radius < 0) b.vy *= -0.8;
+
+                // Ball collision
+                for (let j = i + 1; j < balls.length; j++) {
+                    let b2 = balls[j];
+                    let dx = b2.x - b.x; let dy = b2.y - b.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < b.radius + b2.radius) {
+                        // Simple bounce
+                        [b.vx, b2.vx] = [b2.vx, b.vx];
+                        [b.vy, b2.vy] = [b2.vy, b.vy];
+                    }
+                }
+
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                ctx.fillStyle = b.color;
+                ctx.fill();
+                ctx.closePath();
+            });
+            requestAnimationFrame(animate);
         }
     </script>
 </body>
